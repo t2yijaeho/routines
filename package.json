@@ -13,7 +13,7 @@
     "build:pages": "next build",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/library.test.mjs tests/routine.test.mjs",
+    "test": "node --test tests/library.test.mjs tests/routine.test.mjs tests/poses.test.mjs",
     "test:site": "node --test tests/site.test.mjs",
     "release:check": "node scripts/check-release.mjs",
     "audit": "npm audit --audit-level=high",

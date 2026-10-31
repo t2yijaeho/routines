@@ -152,8 +152,8 @@ const JUMP_AIR = rig(
   [161, 26],
   [153, 48],
   [149, 101],
-  [[139, 70], [126, 91], [121, 98]],
-  [[165, 70], [178, 91], [183, 98]],
+  [[139, 58], [122, 70], [117, 75]],
+  [[142, 65], [126, 78], [121, 83]],
   [[143, 126], [137, 151], [136, 157]],
   [[157, 126], [163, 151], [168, 155]],
 );
@@ -162,8 +162,8 @@ const JUMP_BACKSWING = rig(
   [161, 41],
   [153, 62],
   [149, 111],
-  [[137, 77], [120, 91], [114, 95]],
-  [[166, 78], [185, 94], [191, 98]],
+  [[137, 74], [119, 89], [113, 94]],
+  [[143, 79], [121, 96], [115, 101]],
   [[143, 144], [142, 176]],
   [[156, 144], [158, 176]],
 );
@@ -249,20 +249,20 @@ export const SHRIMP_TOP = rig(
   [174, 42],
   [164, 63],
   [160, 111],
-  [[176, 90], [167, 104]],
-  [[183, 105], [205, 101]],
-  [[130, 137], [111, 145], [104, 143]],
-  [[165, 144], [166, 176]],
+  [[183, 105], [211, 99]],
+  [[148, 85], [119, 108], [99, 121]],
+  [[158, 144], [162, 176]],
+  [[128, 132], [104, 126], [98, 122]],
 );
 
 export const SHRIMP_LOW = rig(
   [179, 79],
   [165, 98],
   [151, 137],
-  [[177, 123], [168, 133]],
-  [[185, 128], [207, 128]],
-  [[108, 160], [93, 140], [87, 132]],
-  [[162, 144], [166, 176]],
+  [[184, 132], [211, 128]],
+  [[149, 111], [113, 130], [85, 138]],
+  [[158, 144], [162, 176]],
+  [[107, 157], [90, 145], [84, 139]],
 );
 
 export function hangPose(raise: "down" | "knees" | "toes"): Pose {
@@ -320,14 +320,14 @@ export const WRIST_FLEXOR = rig(
 );
 
 const ROLL_TUCK = rig(
-  [133, 138],
-  [148, 119],
-  [168, 117],
-  [[145, 105], [159, 92], [165, 88]],
-  [[157, 105], [170, 94], [176, 90]],
-  [[164, 85], [145, 73], [138, 70]],
-  [[173, 89], [155, 78], [148, 75]],
-  { curve: [157, 115] },
+  [126, 117],
+  [145, 106],
+  [163, 127],
+  [[148, 96], [162, 89], [168, 92]],
+  [[151, 103], [165, 96], [171, 98]],
+  [[174, 98], [156, 87], [150, 85]],
+  [[182, 102], [165, 91], [159, 89]],
+  { curve: [152, 113] },
 );
 
 export const PLOW = rig(
@@ -598,12 +598,7 @@ export function scene(idOrMotion: string, seconds: number): Scene {
 
   const jumpScene = (): Scene => {
     const jumpPhase = (1 - Math.cos((seconds * Math.PI) / 2.5)) / 2;
-    if (jumpPhase < 0.12) {
-      return { pose: between(STAND, JUMP_BACKSWING, jumpPhase / 0.12), equipment: "floor" };
-    }
-    if (jumpPhase < 0.3) {
-      return { pose: between(JUMP_BACKSWING, SQUAT, (jumpPhase - 0.12) / 0.18), equipment: "floor" };
-    }
+    if (jumpPhase < 0.3) return { pose: between(JUMP_BACKSWING, SQUAT, jumpPhase / 0.3), equipment: "floor" };
     if (jumpPhase < 0.58) return { pose: between(SQUAT, JUMP_AIR, (jumpPhase - 0.3) / 0.28), equipment: "floor" };
     if (jumpPhase < 0.72) return { pose: JUMP_AIR, equipment: "floor" };
     if (jumpPhase < 0.9) return { pose: between(JUMP_AIR, SQUAT, (jumpPhase - 0.72) / 0.18), equipment: "floor" };
