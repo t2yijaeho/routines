@@ -158,16 +158,6 @@ const JUMP_AIR = rig(
   [[157, 126], [163, 151], [168, 155]],
 );
 
-const JUMP_BACKSWING = rig(
-  [161, 41],
-  [153, 62],
-  [149, 111],
-  [[137, 74], [119, 89], [113, 94]],
-  [[143, 79], [121, 96], [115, 101]],
-  [[143, 144], [142, 176]],
-  [[156, 144], [158, 176]],
-);
-
 export function pullPose(id: string, up: boolean, side = 1): Pose {
   const wide = id.includes("wide");
   const neutral = id.includes("neutral");
@@ -250,9 +240,9 @@ export const SHRIMP_TOP = rig(
   [164, 63],
   [160, 111],
   [[183, 105], [211, 99]],
-  [[148, 85], [119, 108], [99, 121]],
+  [[148, 85], [116, 104], [108, 103]],
   [[158, 144], [162, 176]],
-  [[128, 132], [104, 126], [98, 122]],
+  [[128, 132], [113, 108], [108, 103]],
 );
 
 export const SHRIMP_LOW = rig(
@@ -260,9 +250,9 @@ export const SHRIMP_LOW = rig(
   [165, 98],
   [151, 137],
   [[184, 132], [211, 128]],
-  [[149, 111], [113, 130], [85, 138]],
+  [[149, 111], [106, 128], [96, 124]],
   [[158, 144], [162, 176]],
-  [[107, 157], [90, 145], [84, 139]],
+  [[107, 157], [100, 130], [96, 124]],
 );
 
 export function hangPose(raise: "down" | "knees" | "toes"): Pose {
@@ -342,10 +332,10 @@ export const PLOW = rig(
 );
 
 const T_BALANCE = rig(
-  [184, 43], [160, 65], [124, 72],
-  [[185, 60], [211, 57]], [[190, 65], [217, 62]],
-  [[87, 71], [58, 70], [49, 69]], [[123, 111], [127, 159], [136, 166]],
-  { curve: [142, 66] },
+  [216, 57], [192, 79], [156, 86],
+  [[217, 74], [243, 71]], [[222, 79], [249, 76]],
+  [[119, 85], [90, 84], [81, 83]], [[155, 125], [159, 173], [168, 180]],
+  { curve: [174, 80] },
 );
 
 function rotatePointAround(pointToRotate: Point, pivot: Point, angle: number): Point {
@@ -372,26 +362,27 @@ function rotatePose(pose: Pose, pivot: Point, angle: number): Pose {
 }
 
 function rollingPose(seconds: number): Pose {
-  // Rock the tucked spine between a seated balance and the upper back.
+  // Keep the original tucked rocking pose and lower it toward the mat.
   const rockingAngle = -0.62 * Math.cos((seconds * Math.PI) / 1.9);
   const rotated = rotatePose(ROLL_TUCK, [155, 130], rockingAngle);
   const lift = 2.5 * Math.abs(Math.sin((seconds * Math.PI) / 1.9));
+  const lower = 40;
   const shift = (pose: Pose): Pose => ({
     ...pose,
-    head: [pose.head[0], pose.head[1] + lift],
-    shoulder: [pose.shoulder[0], pose.shoulder[1] + lift],
-    hip: [pose.hip[0], pose.hip[1] + lift],
-    curve: [pose.curve[0], pose.curve[1] + lift],
-    farArm: pose.farArm.map(([x, y]) => [x, y + lift]) as unknown as Chain,
-    nearArm: pose.nearArm.map(([x, y]) => [x, y + lift]) as unknown as Chain,
-    farLeg: pose.farLeg.map(([x, y]) => [x, y + lift]) as unknown as Chain,
-    nearLeg: pose.nearLeg.map(([x, y]) => [x, y + lift]) as unknown as Chain,
+    head: [pose.head[0], pose.head[1] + lower + lift],
+    shoulder: [pose.shoulder[0], pose.shoulder[1] + lower + lift],
+    hip: [pose.hip[0], pose.hip[1] + lower + lift],
+    curve: [pose.curve[0], pose.curve[1] + lower + lift],
+    farArm: pose.farArm.map(([x, y]) => [x, y + lower + lift]) as unknown as Chain,
+    nearArm: pose.nearArm.map(([x, y]) => [x, y + lower + lift]) as unknown as Chain,
+    farLeg: pose.farLeg.map(([x, y]) => [x, y + lower + lift]) as unknown as Chain,
+    nearLeg: pose.nearLeg.map(([x, y]) => [x, y + lower + lift]) as unknown as Chain,
   });
   return shift(rotated);
 }
 
 function highKneePose(seconds: number): Pose {
-  const stride = seconds * 7.2;
+  const stride = seconds * 6.6;
   const alternatingDrive = Math.sin(stride);
   const easeDrive = (value: number) => {
     const t = Math.max(0, value);
@@ -399,39 +390,38 @@ function highKneePose(seconds: number): Pose {
   };
   const nearDrive = easeDrive(alternatingDrive);
   const farDrive = easeDrive(-alternatingDrive);
-  const bounce = Math.max(nearDrive, farDrive) * 2.2;
-  const weightShift = (farDrive - nearDrive) * 3.5;
+  const bounce = Math.max(nearDrive, farDrive) * 1.2;
+  const weightShift = (farDrive - nearDrive) * 1.2;
   const head: Point = [165 + weightShift, 42 - bounce];
   const shoulder: Point = [156 + weightShift, 63 - bounce];
   const hip: Point = [151 + weightShift, 111 - bounce];
 
   const makeLeg = (start: Point, drive: number, side: -1 | 1): Chain => {
+    const knee = point(
+      [start[0] + side * 7, hip[1] + 35],
+      [start[0] + 24, hip[1] - 27],
+      drive,
+    );
     const ankle = point(
-      [start[0] - side * 7, hip[1] + 63],
-      [start[0] + 23, hip[1] + 3],
+      [start[0] - side * 5, hip[1] + 63],
+      [start[0] + 20, hip[1] + 20],
       drive,
     );
-    const hint = point(
-      [start[0] + 12, hip[1] + 34],
-      [start[0] + 12, hip[1] - 34],
-      drive,
-    );
-    const knee = joint(start, ankle, hint, 37, 36);
-    return [start, knee, ankle, [ankle[0] + 10, ankle[1] + 2]];
+    const toe = point([ankle[0] + 10, ankle[1] + 2], [ankle[0] + 9, ankle[1] + 7], drive);
+    return [start, knee, ankle, toe];
   };
 
-  const makeArm = (start: Point, pump: number, side: -1 | 1): Chain => {
+  const makeArm = (start: Point, pump: number): Chain => {
+    const elbow = point(
+      [start[0] - 5, start[1] + 18],
+      [start[0] + 14, start[1] + 17],
+      pump,
+    );
     const wrist = point(
-      [start[0] - 11 + side * 2, start[1] + 33],
-      [start[0] + 24, start[1] - 12],
+      [start[0] - 12, start[1] + 35],
+      [start[0] + 22, start[1] + 22],
       pump,
     );
-    const elbowHint = point(
-      [start[0] - 18 + side * 2, start[1] + 14],
-      [start[0] + 20, start[1] + 13],
-      pump,
-    );
-    const elbow = joint(start, wrist, elbowHint, 26, 25);
     return [start, elbow, wrist, [wrist[0] + 4, wrist[1] - 3]];
   };
 
@@ -446,8 +436,8 @@ function highKneePose(seconds: number): Pose {
   );
   pose.farLeg = makeLeg(pose.farLeg[0], farDrive, -1);
   pose.nearLeg = makeLeg(pose.nearLeg[0], nearDrive, 1);
-  pose.farArm = makeArm(pose.farArm[0], nearDrive, -1);
-  pose.nearArm = makeArm(pose.nearArm[0], farDrive, 1);
+  pose.farArm = makeArm(pose.farArm[0], nearDrive);
+  pose.nearArm = makeArm(pose.nearArm[0], farDrive);
   return pose;
 }
 
@@ -598,11 +588,10 @@ export function scene(idOrMotion: string, seconds: number): Scene {
 
   const jumpScene = (): Scene => {
     const jumpPhase = (1 - Math.cos((seconds * Math.PI) / 2.5)) / 2;
-    if (jumpPhase < 0.3) return { pose: between(JUMP_BACKSWING, SQUAT, jumpPhase / 0.3), equipment: "floor" };
-    if (jumpPhase < 0.58) return { pose: between(SQUAT, JUMP_AIR, (jumpPhase - 0.3) / 0.28), equipment: "floor" };
-    if (jumpPhase < 0.72) return { pose: JUMP_AIR, equipment: "floor" };
-    if (jumpPhase < 0.9) return { pose: between(JUMP_AIR, SQUAT, (jumpPhase - 0.72) / 0.18), equipment: "floor" };
-    return { pose: between(SQUAT, JUMP_BACKSWING, (jumpPhase - 0.9) / 0.1), equipment: "floor" };
+    if (jumpPhase < 0.18) return { pose: between(SQUAT, JUMP_AIR, jumpPhase / 0.18), equipment: "floor" };
+    if (jumpPhase < 0.35) return { pose: JUMP_AIR, equipment: "floor" };
+    if (jumpPhase < 0.55) return { pose: between(JUMP_AIR, SQUAT, (jumpPhase - 0.35) / 0.2), equipment: "floor" };
+    return { pose: SQUAT, equipment: "floor" };
   };
 
   if (
