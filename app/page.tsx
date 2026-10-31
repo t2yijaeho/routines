@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import exerciseData from "@/data/exercises.json";
+import { ZenFigure } from "./components/ZenFigure";
 
 const categories = ["strength", "flexibility", "isometric", "cardio"] as const;
 type Category = (typeof categories)[number];
@@ -131,20 +132,10 @@ const defaultEntries: RoutineEntry[] = defaultPreset.entries.map(
 
 const storageKey = "motive-routine-v1";
 
-function MotionFigure({ motion }: { motion: string }) {
+function MotionFigure({ motion, exerciseId }: { motion: string; exerciseId?: string }) {
   return (
     <div className={`motion-stage motion-stage--${motion}`} aria-hidden="true">
-      <span className="motion-stage__bar" />
-      <span className="motion-stage__orbit" />
-      <span className="motion-person">
-        <span className="motion-person__head" />
-        <span className="motion-person__torso" />
-        <span className="motion-person__arm motion-person__arm--left" />
-        <span className="motion-person__arm motion-person__arm--right" />
-        <span className="motion-person__leg motion-person__leg--left" />
-        <span className="motion-person__leg motion-person__leg--right" />
-      </span>
-      <span className="motion-stage__ground" />
+      <ZenFigure motion={motion} exerciseId={exerciseId} playing={true} />
     </div>
   );
 }
@@ -163,6 +154,54 @@ function makeInstanceId(exerciseId: string) {
       ? crypto.randomUUID()
       : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   return `${exerciseId}-${suffix}`;
+}
+
+function renderInlineMarkdown(text: string) {
+  const tokens = text.split(/(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|_[^_]+_)/g);
+  return tokens.map((token, index) => {
+    if (token.startsWith("**") && token.endsWith("**")) return <strong key={index}>{token.slice(2, -2)}</strong>;
+    if ((token.startsWith("*") && token.endsWith("*")) || (token.startsWith("_") && token.endsWith("_"))) return <em key={index}>{token.slice(1, -1)}</em>;
+    if (token.startsWith("`") && token.endsWith("`")) return <code key={index}>{token.slice(1, -1)}</code>;
+    return <Fragment key={index}>{token}</Fragment>;
+  });
+}
+
+function MarkdownPreview({ content }: { content: string }) {
+  const lines = content.split(/\r?\n/);
+  const blocks: Array<{ type: "ul" | "ol"; lines: string[] } | { type: "p" | "h"; text: string; level?: number }> = [];
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    const heading = /^(#{1,3})\s+(.+)$/.exec(line);
+    const list = /^(?:([-*+])|\d+[.)])\s+(.+)$/.exec(line);
+    if (heading) blocks.push({ type: "h", text: heading[2], level: heading[1].length });
+    else if (list) {
+      const type = /^\d/.test(line) ? "ol" : "ul";
+      const previous = blocks[blocks.length - 1];
+      if (previous?.type === type) previous.lines.push(list[2]);
+      else blocks.push({ type, lines: [list[2]] });
+    } else blocks.push({ type: "p", text: line });
+  }
+  return (
+    <div className="ai-markdown">
+      {blocks.map((block, index) => {
+        if (block.type === "ul" || block.type === "ol") {
+          const List = block.type;
+          return (
+            <List key={index}>
+              {block.lines.map((line, itemIndex) => <li key={itemIndex}>{renderInlineMarkdown(line)}</li>)}
+            </List>
+          );
+        }
+        if (block.type === "h") {
+          const Heading = `h${block.level}` as "h1" | "h2" | "h3";
+          return <Heading key={index}>{renderInlineMarkdown(block.text)}</Heading>;
+        }
+        if (block.type === "p") return <p key={index}>{renderInlineMarkdown(block.text)}</p>;
+        return null;
+      })}
+    </div>
+  );
 }
 
 function isStoredRoutine(value: unknown): value is StoredRoutine {
@@ -372,7 +411,7 @@ export default function Home() {
     setTargetMinutes(preset.targetMinutes);
     setRoutine(
       preset.entries.map(([exerciseId, amount], index) => ({
-        instanceId: `${preset.id}-${index}-${Date.now()}`,
+        instanceId: makeInstanceId(`${preset.id}-${index}`),
         exerciseId,
         amount,
       })),
@@ -544,7 +583,7 @@ export default function Home() {
       </section>
 
       <section className="studio">
-        <div className="library" id="library">
+        <section className="library" id="library" aria-label="Movement library">
           <div className="section-heading">
             <div>
               <span className="section-kicker">Component library</span>
@@ -613,7 +652,7 @@ export default function Home() {
                   <span>{categoryDetails[exercise.category].code}</span>
                   <span>{String(index + 1).padStart(2, "0")}</span>
                 </div>
-                <MotionFigure motion={exercise.motion} />
+                <MotionFigure motion={exercise.motion} exerciseId={exercise.id} />
                 <div className="exercise-card__body">
                   <div className="exercise-card__meta">
                     <span>{exercise.family}</span>
@@ -649,7 +688,7 @@ export default function Home() {
               </button>
             </div>
           )}
-        </div>
+        </section>
 
         <aside className="builder" id="builder" aria-label="Routine builder">
           <div className="builder__header">
@@ -821,7 +860,7 @@ export default function Home() {
                 normally without it.
               </p>
             )}
-            {aiAdvice && <div className="ai-response" aria-live="polite">{aiAdvice}</div>}
+            {aiAdvice && <div className="ai-response" aria-live="polite"><MarkdownPreview content={aiAdvice} /></div>}
             <button type="button" onClick={runBrowserAi} disabled={aiDisabled}>
               {aiState === "checking" ? "Checking browser…" : aiLabel}
               <span aria-hidden="true">↗</span>
