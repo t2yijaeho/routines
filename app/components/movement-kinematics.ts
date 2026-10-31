@@ -142,8 +142,8 @@ export const SQUAT_TOP = rig(
   [161, 41],
   [153, 62],
   [149, 111],
-  [[175, 69], [199, 74]],
-  [[179, 73], [203, 78]],
+  [[137, 89], [127, 108]],
+  [[164, 89], [175, 108]],
   [[145, 144], [151, 176]],
   [[159, 144], [166, 176]],
 );
@@ -152,10 +152,20 @@ const JUMP_AIR = rig(
   [161, 26],
   [153, 48],
   [149, 101],
-  [[139, 63], [126, 78], [122, 84]],
-  [[165, 64], [178, 79], [182, 85]],
+  [[139, 70], [126, 91], [121, 98]],
+  [[165, 70], [178, 91], [183, 98]],
   [[143, 126], [137, 151], [136, 157]],
   [[157, 126], [163, 151], [168, 155]],
+);
+
+const JUMP_BACKSWING = rig(
+  [161, 41],
+  [153, 62],
+  [149, 111],
+  [[137, 77], [120, 91], [114, 95]],
+  [[166, 78], [185, 94], [191, 98]],
+  [[143, 144], [142, 176]],
+  [[156, 144], [158, 176]],
 );
 
 export function pullPose(id: string, up: boolean, side = 1): Pose {
@@ -239,7 +249,7 @@ export const SHRIMP_TOP = rig(
   [174, 42],
   [164, 63],
   [160, 111],
-  [[175, 83], [188, 75]],
+  [[176, 90], [167, 104]],
   [[183, 105], [205, 101]],
   [[130, 137], [111, 145], [104, 143]],
   [[165, 144], [166, 176]],
@@ -249,7 +259,7 @@ export const SHRIMP_LOW = rig(
   [179, 79],
   [165, 98],
   [151, 137],
-  [[177, 111], [189, 119]],
+  [[177, 123], [168, 133]],
   [[185, 128], [207, 128]],
   [[108, 160], [93, 140], [87, 132]],
   [[162, 144], [166, 176]],
@@ -310,14 +320,14 @@ export const WRIST_FLEXOR = rig(
 );
 
 const ROLL_TUCK = rig(
-  [115, 120],
-  [136, 111],
-  [158, 126],
-  [[139, 91], [157, 76], [163, 72]],
-  [[148, 95], [167, 81], [173, 77]],
-  [[172, 102], [153, 85], [148, 80]],
-  [[179, 105], [161, 89], [156, 84]],
-  { curve: [145, 117] },
+  [133, 138],
+  [148, 119],
+  [168, 117],
+  [[145, 105], [159, 92], [165, 88]],
+  [[157, 105], [170, 94], [176, 90]],
+  [[164, 85], [145, 73], [138, 70]],
+  [[173, 89], [155, 78], [148, 75]],
+  { curve: [157, 115] },
 );
 
 export const PLOW = rig(
@@ -362,10 +372,10 @@ function rotatePose(pose: Pose, pivot: Point, angle: number): Pose {
 }
 
 function rollingPose(seconds: number): Pose {
-  // Rock the compact tuck through a small arc while keeping the silhouette intact.
-  const rockingAngle = -0.28 * Math.cos((seconds * Math.PI) / 1.9);
-  const rotated = rotatePose(ROLL_TUCK, [151, 112], rockingAngle);
-  const lift = 5 * Math.abs(Math.sin((seconds * Math.PI) / 1.9));
+  // Rock the tucked spine between a seated balance and the upper back.
+  const rockingAngle = -0.62 * Math.cos((seconds * Math.PI) / 1.9);
+  const rotated = rotatePose(ROLL_TUCK, [155, 130], rockingAngle);
+  const lift = 2.5 * Math.abs(Math.sin((seconds * Math.PI) / 1.9));
   const shift = (pose: Pose): Pose => ({
     ...pose,
     head: [pose.head[0], pose.head[1] + lift],
@@ -586,14 +596,18 @@ export function scene(idOrMotion: string, seconds: number): Scene {
     equipment,
   });
 
-  const phase = Math.max(0, Math.min(1, slow));
   const jumpScene = (): Scene => {
     const jumpPhase = (1 - Math.cos((seconds * Math.PI) / 2.5)) / 2;
-    if (jumpPhase < 0.2) return { pose: between(STAND, SQUAT, jumpPhase / 0.2), equipment: "floor" };
-    if (jumpPhase < 0.58) return { pose: between(SQUAT, JUMP_AIR, (jumpPhase - 0.2) / 0.38), equipment: "floor" };
+    if (jumpPhase < 0.12) {
+      return { pose: between(STAND, JUMP_BACKSWING, jumpPhase / 0.12), equipment: "floor" };
+    }
+    if (jumpPhase < 0.3) {
+      return { pose: between(JUMP_BACKSWING, SQUAT, (jumpPhase - 0.12) / 0.18), equipment: "floor" };
+    }
+    if (jumpPhase < 0.58) return { pose: between(SQUAT, JUMP_AIR, (jumpPhase - 0.3) / 0.28), equipment: "floor" };
     if (jumpPhase < 0.72) return { pose: JUMP_AIR, equipment: "floor" };
     if (jumpPhase < 0.9) return { pose: between(JUMP_AIR, SQUAT, (jumpPhase - 0.72) / 0.18), equipment: "floor" };
-    return { pose: between(SQUAT, STAND, (jumpPhase - 0.9) / 0.1), equipment: "floor" };
+    return { pose: between(SQUAT, JUMP_BACKSWING, (jumpPhase - 0.9) / 0.1), equipment: "floor" };
   };
 
   if (
